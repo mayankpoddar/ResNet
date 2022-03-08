@@ -31,37 +31,45 @@ class BasicBlock(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, block, num_blocks, num_classes=10):
+    def __init__(self, block, num_layers, num_blocks, num_classes=10):
+        if not isinstance(num_blocks, list):
+            raise Exception("num_blocks parameter should be a list of integer values")
+        if num_layers != len(num_blocks):
+            raise Exception("Residual layers should be equal to the length of num_blocks list")
         super(ResNet, self).__init__()
-        self.in_planes = 64
-
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3,
+        self.in_planes = 32
+        self.conv1 = nn.Conv2d(3, self.in_planes, kernel_size=3,
                                stride=1, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(64)
-        self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
-        self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
-        self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
-        self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
-        self.linear = nn.Linear(512, num_classes)
+        self.bn1 = nn.BatchNorm2d(self.in_planes)
+        self.num_layers = num_layers
+        self.layer1 = self._make_layer(block, self.in_planes, num_blocks[0], stride=1)
+        for i in range(2, num_layers+1):
+            setattr(self, "layer"+str(i), self._make_layer(block, 2*self.in_planes, num_blocks[i-1], stride=2))
+        self.linear = nn.Linear(self.in_planes, num_classes)
+        self.path = "./project1_model.pt"
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1]*(num_blocks-1)
-        layers = []
+        custom_layers = []
         for stride in strides:
-            layers.append(block(self.in_planes, planes, stride))
+            custom_layers.append(block(self.in_planes, planes, stride))
             self.in_planes = planes
-        return nn.Sequential(*layers)
+        return nn.Sequential(*custom_layers)
 
     def forward(self, x):
         out = F.relu(self.bn1(self.conv1(x)))
-        out = self.layer1(out)
-        out = self.layer2(out)
-        out = self.layer3(out)
-        out = self.layer4(out)
+        for i in range(1, self.num_layers+1):
+            out = eval("self.layer" + str(i) + "(out)")
         out = F.avg_pool2d(out, 4)
         out = out.view(out.size(0), -1)
         out = F.softmax(self.linear(out), dim=1)
         return out
 
+    def saveToDisk(self):
+        torch.save(self.state_dict(), self.path)
+
+    def loadFromDisk(self):
+        self.load_state_dict(torch.load(self.path))
+
 def project1_model():
-    return ResNet(BasicBlock, [2, 2, 2, 2])
+    return ResNet(BasicBlock, 5, [2, 2, 2, 2, 2])
