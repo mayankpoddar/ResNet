@@ -1,6 +1,6 @@
 import torch
 from tqdm import tqdm
-from liveplotloss import PlotLosses
+import matplotlib.pyplot as plt
 
 from DatasetFetcher import DatasetFetcher
 from project1_model import ResNet, BasicBlock 
@@ -17,7 +17,7 @@ if __name__ == "__main__":
     trainLoader, testLoader = df.getLoaders()
     
     # Get Model
-    model = ResNet(BasicBlock, 4, [3, 3, 3, 3])
+    model = ResNet(BasicBlock, 3, [2, 2, 2])
     model = model.to(device)
     
     # Defining Loss Function, Learning Rate, Weight Decay, Optimizer) 
@@ -32,16 +32,15 @@ if __name__ == "__main__":
         raise Exception("Model not under budget!")
     
     # Setting up training
-    EPOCHS=1
+    EPOCHS=100
+    globalBestAccuracy = 0.0
     trainingLoss = []
     testingLoss = []
     trainingAccuracy = []
     testingAccuracy = []
     
-    liveLoss = PlotLosses()
     # Training
     for i in tqdm(range(EPOCHS)):
-        liveLossLogs = {}
         for phase in ['train', 'test']:
             if phase == "train":
                 loader = trainLoader
@@ -72,12 +71,18 @@ if __name__ == "__main__":
             else:
                 testingLoss.append(epochLoss)
                 testingAccuracy.append(epochAccuracy)
-        liveLossLogs["loss"] = trainingLoss[-1]
-        liveLossLogs["val_loss"] = testingLoss[-1]
-        liveLossLogs["accuracy"] = trainingAccuracy[-1]
-        liveLossLogs["val_accuracy"] = testingAccuracy[-1]
-        liveLoss.update(liveLossLogs)
-        liveLoss.update()
-            
-    model.saveToDisk()
+                if epochAccuracy > globalBestAccuracy:
+                    globalBestAccuracy = epochAccuracy
+                    model.saveToDisk()	
     
+    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+    n = len(trainingLoss)
+    ax1.plot(range(n), trainingLoss, '-', linewidth='3', label='Train Error')
+    ax1.plot(range(n), testingLoss, '-', linewidth='3', label='Test Error')
+    ax2.plot(range(n), trainingAccuracy, '-', linewidth='3', label='Train Accuracy')
+    ax2.plot(range(n), testingAccuracy, '-', linewidth='3', label='Test Acuracy')
+    ax1.grid(True)
+    ax2.grid(True)
+    ax1.legend()
+    ax2.legend()
+    f.savefig("./trainTestCurve.png")
