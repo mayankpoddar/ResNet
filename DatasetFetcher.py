@@ -12,7 +12,7 @@ class DatasetFetcher:
         self.batch_size = batch_size
         self.train_transformers = []
         self.test_transformers = []
-        self.workersAvailable = multiprocessing.cpu_count()
+        self.workersAvailable = min(multiprocessing.cpu_count(), 14)
 
     def addHorizontalFlipping(self):
         self.train_transformers.append(torchvision.transforms.RandomHorizontalFlip())
