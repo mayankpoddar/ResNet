@@ -76,10 +76,10 @@ class ResNet(nn.Module):
         self.load_state_dict(torch.load(self.path))
 
 def project1_model():
-    return ResNet(BasicBlock, 32, 4, [4, 4, 4, 2],kernel=(3,1),skip_kernel=(1,0), 10, bias=True)
+    return ResNet(BasicBlock, 32, 4, [4, 4, 4, 2],kernel=(3,1),skip_kernel=(1,0), num_classes=10, bias=True)
 
 if __name__ == "__main__":
-    model = ResNet(BasicBlock, 128, 2, [2, 2],kernel=(3,1),skip_kernel=(1,0), 10, bias=True)
+    model = ResNet(BasicBlock, 32, 4, [4, 4, 4, 2],kernel=(3,1),skip_kernel=(1,0), num_classes=10, bias=True)
     trainable_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(trainable_parameters)
     x = torch.rand(1, 3, 32, 32)
