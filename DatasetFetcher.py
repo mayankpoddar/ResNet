@@ -1,6 +1,7 @@
 import multiprocessing
 import torchvision
 from torch.utils.data import DataLoader
+from GaussianNoise import GaussianNoise
 
 class DatasetFetcher:
 
@@ -17,8 +18,18 @@ class DatasetFetcher:
     def addHorizontalFlipping(self):
         self.train_transformers.append(torchvision.transforms.RandomHorizontalFlip())
 
+    def addVerticalFlipping(self):
+        self.train_transformers.append(torchvision.transforms.RandomVerticalFlip())
+        
+    def addGaussianNoise(self, mean=0.0, std=1.0):
+        self.train_transformers.append(torchvision.transforms.RandomApply([GaussianNoise(mean, std)], p=0.5))
+
     def addRandomCrop(self, size=32, padding=3):
         self.train_transformers.append(torchvision.transforms.RandomCrop(size=size, padding=padding))
+        
+    def addHistogramEqualization(self):
+        self.train_transformers.append(torchvision.transforms.functional.equalize)
+        self.test_transformers.append(torchvision.transforms.functional.equalize)
 
     def __addToTensor(self):
         self.train_transformers.append(torchvision.transforms.ToTensor())
@@ -32,6 +43,9 @@ class DatasetFetcher:
         std = trainData.std(axis=(0, 1, 2))
         self.train_transformers.append(torchvision.transforms.Normalize(mean=mean, std=std))
         self.test_transformers.append(torchvision.transforms.Normalize(mean=mean, std=std))
+        
+    def addAutoAugmentation(self):
+        self.train_transformers.append(torchvision.transforms.AutoAugment(torchvision.transforms.AutoAugmentPolicy.CIFAR10))
 
     def getLoaders(self):
         if len(self.train_transformers) == 0:
@@ -46,5 +60,6 @@ if __name__ == "__main__":
     df = DatasetFetcher(dataset="CIFAR10", batch_size=64)
     df.addHorizontalFlipping()
     df.addRandomCrop(size=32, padding=3)
+    df.addHistogramEqualization()
     df.addNormalizer()
     trainLoader, testLoader = df.getLoaders()
