@@ -24,5 +24,5 @@ Install them manually or use this in your python notebook:
 
 | Type   |      Accuracy      |
 |----------|:-------------:|
-| Training |  92.56% |
+| Training |  99.9998% |
 | Testing |    93.16%   |
